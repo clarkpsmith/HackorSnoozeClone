@@ -39,12 +39,14 @@ $(async function() {
 
 		// call the login static method to build a user instance
 		const userInstance = await User.login(username, password);
+
 		// set the global user to the user instance
 		currentUser = userInstance;
 
 		syncCurrentUserToLocalStorage();
 		loginAndSubmitForm();
-		generateStories()
+		generateStories();
+
 	});
 
 	/**
@@ -74,6 +76,7 @@ $(async function() {
 	$navLogOut.on('click', function() {
 		// empty out local storage
 		localStorage.clear();
+
 		// refresh the page, clearing memory
 		location.reload();
 	});
@@ -105,9 +108,11 @@ $(async function() {
 
 	//submit link for for new post
 	$submit.on('click', () => {
+		$submitForm.trigger("reset")
 		$submitForm.slideToggle();
 		$favoritedArticles.hide()
 			$allStoriesList.show();
+		
 		
 	});
 
