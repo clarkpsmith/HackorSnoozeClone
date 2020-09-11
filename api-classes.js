@@ -43,7 +43,7 @@ class StoryList {
    * Returns the new story object
    */
 
-	static async addStory(user, newStory) {
+	async addStory(user, newStory) {
 		// TODO - Implement this functions!
 		// this function should return the newly created story so it can be used in
 		// the script.js file where it will be appended to the DOM
@@ -52,25 +52,34 @@ class StoryList {
 			story: {
 				author: newStory.author,
 				title: newStory.title,
-				url: newStory.url
+				url: newStory.url,
+				
 			}
 		});
+		
 		const storyObj = response.data.story;
+		user.ownStories.push(storyObj);
 		return new Story(storyObj);
 	}
- static async deleteStory(user, storyId) {
-		// TODO - Implement this functions!
-		// this function should return the newly created story so it can be used in
-		// the script.js file where it will be appended to the DOM
-		console.log("working")
-		const response = await axios(`${BASE_URL}/stories/${storyId}`, {
-			method: 'DELETE',
-			data: { token: user.loginToken }
-		});
-
+async deleteStory(user, storyId) {
 
 	
+	//remove from stories list
+	this.stories = this.stories.filter(story => story.storyId !== storyId);
+	//remove from user favorites 
+	user.favorites = user.favorites.filter(story => story.storyId !== storyId);
+
+//remove from own stories
+	user.ownStories = user.ownStories.filter(s => s.storyId !== storyId);
+
+
+//remove from api
+	await axios(`${BASE_URL}/stories/${storyId}`, {
+		 method: 'DELETE',
+		 data: { token: user.loginToken }
+	 });	
 }
+
 /**
  * The User class to primarily represent the current user.
  *  There are helper methods to signup (create), login, and getLoggedInUser
@@ -177,23 +186,27 @@ class User {
 
 	//post favorited story to api
 
-	static async favoriteStory(user, storyId) {
+async favoriteStory(user, storyId) {
+	//post favorited story to api
 		const response = await axios.post(`${BASE_URL}/users/${user.username}/favorites/${storyId}`, {
 			token: user.loginToken
 		});
+		//update users favorites list without refreshing the page
 		user.favorites = response.data.user.favorites
-		console.log(response.data)
+	
 	
 	}
 
 	//delete favorited story to api
-	static async deleteFavoriteStory(user, storyId) {
+ async deleteFavoriteStory(user, storyId) {
+	 	//delete favorited story to api
 		const response = await axios(`${BASE_URL}/users/${user.username}/favorites/${storyId}`, {
 			method: 'DELETE',
 			data: { token: user.loginToken }
 		});
+			//delete user favorites list withoutrefresing the page
 	user.favorites = response.data.user.favorites
-	console.log(response.data)
+
 	}
 }
 /**

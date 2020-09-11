@@ -12,7 +12,7 @@ $(async function() {
 	const $favorites = $('#favorites-link');
 	const $submit = $('#submit-post-link');
 	const $favoritedArticles = $('#favorited-articles');
-
+	const $myStoriesArticles = $("#my-articles")
 	const $userName = $('#nav-welcome');
 	const $userNameProfile = $('#user-profile');
 
@@ -44,6 +44,7 @@ $(async function() {
 
 		syncCurrentUserToLocalStorage();
 		loginAndSubmitForm();
+		generateStories()
 	});
 
 	/**
@@ -86,127 +87,97 @@ $(async function() {
 		$loginForm.slideToggle();
 		$createAccountForm.slideToggle();
 		$allStoriesList.toggle();
+	
 		
 	});
 
 	/**
    * Event handler for Navigation to Homepage
    */
-
+// when you click on the hack or snooze Link
 	$('body').on('click', '#nav-all', async function() {
+		
 		hideElements();
 		await generateStories();
 		$allStoriesList.show();
-			$favoritedArticles.hide()
-		updateFavorite(currentUser)
+		$favoritedArticles.hide()
 	});
 
 	//submit link for for new post
 	$submit.on('click', () => {
-		$submitForm.show();
+		$submitForm.slideToggle();
 		$favoritedArticles.hide()
 			$allStoriesList.show();
 		
-		
-
 	});
-$favorites.on('click', () => {
+
+	$("body").on('click', "#favorites-link", () => {
+	generateFavorites()
 	$favoritedArticles.show()
 	$allStoriesList.hide();
+	$myStoriesArticles.hide()
 	$submitForm.hide();
-	updateFavorite(currentUser)
-	
-
-	
 })
 
+
+	$("body").on('click', "#my-stories-link", () => {
+		generateMyStories()
+		$myStoriesArticles.show()
+		
+		$favoritedArticles.hide()
+		$allStoriesList.hide();
+		$submitForm.hide();
+		
+	})
+
+	
+
+
+
 async function deletePost(evt) {
-		
-		const storyId = $(evt.target).closest("li").attr("id")
-		await StoryList.deleteStory(currentUser, storyId)
-		await generateStories();
-		console.log(storyId)
-		$(`#${storyId}`).empty()
-		
+
+		const storyId = $(evt.target).closest("li").attr("class")
+
+	
+		 await storyList.deleteStory(currentUser, storyId)
+$(`.${storyId}`).remove();
+
+	
+}
 	
 		
+		//addEventListener to Delete Btn
+$('.articles-container').on("click", ".trash-can", (evt) => deletePost(evt))
+
+	//favoriting a post function
+
+//add eventlistener to articles container when clicked add event listener to all elemetns with the class of favorite
+	$('.articles-container').on('click', '.star', async function(evt) {
+
+
+//if icon is favorited change to not favorited on click
+		if ($(evt.target).hasClass('fas')) {
+	
+			$(evt.target).removeClass('fas')
+			$(evt.target).addClass('far');
+			const storyId = $(evt.target).closest("li").attr('class')
 		
+			//delete favorited story
+await currentUser.deleteFavoriteStory(currentUser, storyId);
+generateFavorites()
+		} 
+
+		// update icon to favorited on click
+		else {
+			$(evt.target).removeClass('far')
+			$(evt.target).addClass('fas');
+			const storyId = $(evt.target).closest("li").attr('class')
+			//push to favorited stories
+	await currentUser.favoriteStory(currentUser, storyId);			
 	}
 
-
-	
-	//favoriting a post function
-function updateFavorite(currentUser) {
-
-
-
-// this event listener is not adding to the favorites list 
-	$('.favorite').on('click', async function(evt) {
-
-		//unfavorite on click
-		if (evt.target.classList.value.includes('favorited')) {
-			console.log("unfavorite on click")
-			$(evt.target).removeClass('favorited');
-			$(evt.target).removeClass('fas fa-star');
-			$(evt.target).addClass('far fa-star');
-			const storyId = $(evt.target.parentNode).attr('id');
-await User.deleteFavoriteStory(currentUser, storyId);
-
-			//push to favorited stories
-		
-		
-	
-		} 
-		// update icon to favorited
-		else {
-				console.log("favorite on click")
-			const storyId = $(evt.target.parentNode).attr('id');
-	await User.favoriteStory(currentUser, storyId);
-				$(evt.target).addClass('favorited');
-			$(evt.target).removeClass('far fa-star');
-			$(evt.target).addClass('fas fa-star');
-			
-		}
 	});
-	generateFavoritedStoryHTML(currentUser)
-generateFavoritedPrefs(currentUser)
-	
-	
-}
 
-//generates HTML for favorited stories list
-function generateFavoritedStoryHTML(currentUser) {
-		$favoritedArticles.empty();
-		for (let favorite of currentUser.favorites) 
-		{
-const fav = "fas favorited"
-			const result = generateStoryHTML(favorite, fav);
-			
-			$favoritedArticles.prepend(result)
-			$(".trash-can").on("click", (evt) => { deletePost(evt)
-				updateFavorite(currentUser)
-			
-			})
-			
-		
-
-		}
-
-}
-
-//makes favorited message's star filled in
-	
-function generateFavoritedPrefs(currentUser) {
-
- for (let favorite of currentUser.favorites) {
-	 const storyId = favorite.storyId
-	
-const $fav = $(`#${storyId}`).children()[0]
-
-$fav.className = "favorite favorited fas fa-star"
-
- }
-}
 
 //submit form for new post
 	$submitForm.on('submit', async function(evt) {
@@ -225,12 +196,15 @@ $fav.className = "favorite favorited fas fa-star"
 		};
 
 		//send the newStoryObject to the api
-		const postedStory = await StoryList.addStory(currentUser, newStory);
+		const postedStory = await storyList.addStory(currentUser, newStory);
 		//generate HTML and post story to the dom
 
 		$allStoriesList.prepend(generateStoryHTML(postedStory));
-		$(".trash-can").on("click", (evt) => deletePost(evt))
-		updateFavorite(currentUser)
+		
+		
+		$submitForm.slideToggle();
+	
+	
 	});
 
 	/**
@@ -251,7 +225,7 @@ $fav.className = "favorite favorited fas fa-star"
 
 		if (currentUser) {
 			showNavForLoggedInUser();
-			updateFavorite(currentUser)
+		
 		}
 	}
 
@@ -273,7 +247,7 @@ $fav.className = "favorite favorited fas fa-star"
 
 		// update the navigation bar
 		showNavForLoggedInUser();
-		updateFavorite(currentUser)
+	
 	}
 
 	/**
@@ -284,6 +258,7 @@ $fav.className = "favorite favorited fas fa-star"
 	async function generateStories() {
 		// get an instance of StoryList
 		const storyListInstance = await StoryList.getStories();
+
 		// update our global variable
 		storyList = storyListInstance;
 
@@ -297,60 +272,85 @@ $fav.className = "favorite favorited fas fa-star"
 			$allStoriesList.append(result);
 			
 		}
+// to do event delegation 
 
-$(".trash-can").on("click", (evt) => deletePost(evt))
 	}
 
 	/**
    * A function to render HTML for an individual Story instance
    */
 
-	function generateStoryHTML(story, fav = "far") {
-		let hostName = getHostName(story.url);
-		let storyMarkup;
-	
-if (currentUser && story.username === currentUser.username) {
-		// render story markup
-		storyMarkup = $(`
-      <li id="${story.storyId}"><i class="favorite ${fav} fa-star"></i>
-        <a class="article-link" href="${story.url}" target="a_blank">
-          <strong>${story.title}</strong>
-        </a>
-        <small class="article-author">by ${story.author}</small>
-        <small class="article-hostname ${hostName}">(${hostName})</small><span><btn class="trash-can"><i class="fas fa-trash-alt"></i></btn></span>
-		<small class="article-username">posted by ${story.username}</small>
-      </li>
-	`);
+   //check if story is in favorite stories
+ function isFavorite(story) {
+  const favStories = new Set(currentUser.favorites.map(fav => fav.storyId))
+ return favStories.has(story.storyId)
+ }
 
-	
-	
-}
+
+	function generateStoryHTML(story) {
+		const hostName = getHostName(story.url);
 		
-else  {
+		if (currentUser){
+	
+		//if logged in, check if story is favorited and update the icon accordingly
+const fav = isFavorite(story) ? "fas": "far" 
 
-	storyMarkup = $(`
-      <li id="${story.storyId}"><i class="favorite ${fav} fa-star"></i>
+//check if story is a users story and add trash can icon to story if so
+		const trashCan = story.username === currentUser.username ? `<btn class="trash-can"><i class="fas fa-trash-alt"></i></btn>`: ''
+	
+		// render story markup
+	return storyMarkup = $(`
+      <li class="${story.storyId}"><span class="star"><i class="favorite ${fav} fa-star"></i></span>${trashCan}
         <a class="article-link" href="${story.url}" target="a_blank">
           <strong>${story.title}</strong>
         </a>
         <small class="article-author">by ${story.author}</small>
         <small class="article-hostname ${hostName}">(${hostName})</small>
 		<small class="article-username">posted by ${story.username}</small>
-
+      </li>
+	`);
+		}
+//if not logged in still populate stories with no star or trash can icons
+else {
+			return storyMarkup = $(`
+      <li class="${story.storyId}">
+        <a class="article-link" href="${story.url}" target="a_blank">
+          <strong>${story.title}</strong>
+        </a>
+        <small class="article-author">by ${story.author}</small>
+        <small class="article-hostname ${hostName}">(${hostName})</small>
+		<small class="article-username">posted by ${story.username}</small>
       </li>
 	`);
 }
-	
-		return storyMarkup;
+
 	}
 
+function generateFavorites () {
+	$favoritedArticles.empty()
+	const favorites = currentUser.favorites
+	if (favorites.length === 0) { $favoritedArticles.append("<h1>No Favorites Added By User Yet!</h1>") 
+	return }
 
+	for (let favorite of favorites) {
+		$favoritedArticles.prepend(generateStoryHTML(favorite))
+	}
+	
+}
 
+	function generateMyStories() {
+		$myStoriesArticles.empty()
 
-
-
-
-
+		const myStories = currentUser.ownStories
+		if (myStories.length === 0) {
+			$myStoriesArticles.append("<h1>No Stories Added By User Yet!</h1>")
+			return
+		}
+	
+		for (let story of myStories) {
+			$myStoriesArticles.prepend(generateStoryHTML(story))
+		}
+	}
 	/* hide all elements in elementsArr */
 
 	function hideElements() {
